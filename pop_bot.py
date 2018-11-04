@@ -35,7 +35,7 @@ class StoreStock(object):
     def check_funko(self, site, url):
         global TIMEOUT
 
-        print("Checking: " + site + " " + url)
+        logger.warning('Checking {0}'.format("Checking: " + site + " " + url))
     
         if site == 'hottopic':
             status = self.hottopic_stock(url)
@@ -56,10 +56,10 @@ class StoreStock(object):
                                           text=msg)
             url_md5 = hashlib.md5(url.encode('utf-8')).hexdigest()
             TIMEOUT[url_md5] = datetime.today().date()
-            print("Timeout Set: " + url_md5)
+            logger.warning('Timeout Set: {0}'.format(url_md5))
 
 
-    def pop_search(self, sleep_interval=5):
+    def pop_search(self, sleep_interval=60):
         global SEM, TIMEOUT, THREAD_ALIVE
 
         while True:  
