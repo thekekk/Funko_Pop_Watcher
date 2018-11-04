@@ -47,6 +47,8 @@ class StoreStock(object):
             status = self.barnesandnoble_stock(url)
         elif site == 'gamestop':
             status = self.gamestop_stock(url)
+        elif site == 'blizzard':
+            status = self.blizzard_stock(url)
         else:
             status = False
     
@@ -59,7 +61,7 @@ class StoreStock(object):
             logger.warning('Timeout Set: {0}'.format(url_md5))
 
 
-    def pop_search(self, sleep_interval=60):
+    def pop_search(self, sleep_interval=5):
         global SEM, TIMEOUT, THREAD_ALIVE
 
         while True:  
@@ -117,6 +119,15 @@ class StoreStock(object):
         html_source = soup.find_all("div", {"class": "button qq"})
         return re.search(r'\bAdd to Cart\b', str(html_source))
 
+    def blizzard_stock(self, url):
+        soup = self.url_to_html(url)
+        html_source = soup.find_all("div",
+                                    {"class": "columns small-12 hide-for-small-only"})
+        if re.search(r'\bOut of stock\b', str(html_source)):
+            return False
+
+        return True
+
 
 def start(bot, update):
     """Send a message when the command /start is issued."""
@@ -143,7 +154,7 @@ def add(bot, update):
         update.message.reply_text('URL exception %s.'.format(update.message.text.split()[1]))
 
     parsed = urlparse(update.message.text.split()[1])
-    store = parsed.netloc.split('.')[1]
+    store = parsed.netloc.split('.')[-2]
     
     SEM.acquire()
     with open('pops.json') as data_file:
