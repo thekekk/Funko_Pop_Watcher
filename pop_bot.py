@@ -64,7 +64,7 @@ class StoreStock(object):
             TIMEOUT[url_md5] = datetime.today().date()
             logger.warning('Timeout Set: {0}'.format(url_md5))
 
-    def pop_search(self, sleep_interval=5):
+    def pop_search(self, sleep_interval=60):
         global SEM, TIMEOUT, THREAD_ALIVE
 
         while True:  
