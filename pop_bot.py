@@ -31,26 +31,30 @@ SEM = threading.Semaphore()
 # Create the EventHandler and pass it your bot's token.
 UPDATER = Updater(os.environ['TELEGRAM_TOKEN'])
 
+HTML_OBJ = {
+    "hottopic": {"type": "div", "filter": {"class": "presale-pdp viewpage-pdp"}},
+    "boxlunch": {"type": "div", "filter": {"class": "availability-msg"}},
+    "walmart": {"type": "div", "filter": {"class": "prod-CallToActionSection hf-BotRow"}},
+    "barnesandnoble": {"type": "section", "filter": {"id": "skuSelection"}},
+    "gamestop": {"type": "div", "filter": {"class": "button qq"}},
+    "blizzard": {"type": "div", "filter": {"class": "columns small-12 hide-for-small-only"}},
+    "geminicollectibles": {"type": "div", "filter": {"style": "display: none"}},
+    "target": {"type": "div", "filter": {"class": "Col-lvtw7q-0 ehJzUH"}}
+}
+
 class StoreStock(object):
     def check_funko(self, site, url):
         global TIMEOUT
+        status = False
 
         logger.warning('Checking {0}'.format("Checking: " + site + " " + url))
     
-        if site == 'hottopic':
-            status = self.hottopic_stock(url)
-        elif site == 'boxlunch':
-            status = self.boxlunch_stock(url)
-        elif site == 'walmart':
-            status = self.walmart_stock(url)
-        elif site == 'barnesandnoble':
-            status = self.barnesandnoble_stock(url)
-        elif site == 'gamestop':
-            status = self.gamestop_stock(url)
-        elif site == 'blizzard':
-            status = self.blizzard_stock(url)
-        else:
-            status = False
+        if site in ['blizzard']:
+            status = self.out_of_stock(site, url)  
+        elif site in ['hottopic', 'boxlunch']:
+            status = self.in_stock(site, url)
+        elif site in ['walmart', 'barnesandnoble', 'gamestop', 'blizzard', 'geminicollectibles', 'target']:
+            status = self.add_to_cart(site, url)
     
         if status:
             msg = site + " - In Stock: " + ":\n" + url
@@ -59,7 +63,6 @@ class StoreStock(object):
             url_md5 = hashlib.md5(url.encode('utf-8')).hexdigest()
             TIMEOUT[url_md5] = datetime.today().date()
             logger.warning('Timeout Set: {0}'.format(url_md5))
-
 
     def pop_search(self, sleep_interval=5):
         global SEM, TIMEOUT, THREAD_ALIVE
@@ -74,11 +77,14 @@ class StoreStock(object):
         
                 for funko in funkopop_links:
                     url_md5 = hashlib.md5(funko['url'].encode('utf-8')).hexdigest()
-                    if not url_md5 in TIMEOUT:
-                        self.check_funko(funko['store'], funko['url'])
-                    elif url_md5 in TIMEOUT and TIMEOUT[url_md5] < datetime.today().date():
-                        if datetime.now().hour > 7:
+                    try:
+                        if not url_md5 in TIMEOUT:
                             self.check_funko(funko['store'], funko['url'])
+                        elif url_md5 in TIMEOUT and TIMEOUT[url_md5] < datetime.today().date():
+                            if datetime.now().hour > 7:
+                                self.check_funko(funko['store'], funko['url'])
+                    except Exception as excp:
+                        logger.error('Exception {0}'.format(excp))
         
             time.sleep(sleep_interval)
 
@@ -91,43 +97,35 @@ class StoreStock(object):
         r = requests.get(url, headers=headers)
         return BeautifulSoup(r.text, 'html.parser')
 
-    def hottopic_stock(self, url):
+    def in_stock(self, site, url):
         soup = self.url_to_html(url)
-        html_source = soup.find_all("div",
-                                    {"class": "presale-pdp viewpage-pdp"})
+        html_source = soup.find_all(HTML_OBJ[site]["type"],
+                                    HTML_OBJ[site]["filter"])
         return re.search(r'\bIn Stock\b', str(html_source))
 
-    def boxlunch_stock(self, url):
+    def add_to_cart(self, site, url):
+        response = False
         soup = self.url_to_html(url)
-        html_source = soup.find_all("div",
-                                    {"class": "availability-msg"})
-        return re.search(r'\bIn Stock\b', str(html_source))
+        html_source = soup.find_all(HTML_OBJ[site]["type"],
+                                    HTML_OBJ[site]["filter"])
+        if re.search(r'\bAdd to Cart\b', str(html_source)):
+            response = True
+        elif re.search(r'\bAdd To Cart\b', str(html_source)):
+            response = True
+        
+        if site == "geminicollectibles":
+            return not response
+        
+        return response
 
-    def walmart_stock(self, url):
+    def out_of_stock(self, site, url):
         soup = self.url_to_html(url)
-        html_source = soup.find_all(
-            "div", {"class": "prod-CallToActionSection hf-BotRow"})
-        return re.search(r'\bAdd to Cart\b', str(html_source))
-
-    def barnesandnoble_stock(self, url):
-        soup = self.url_to_html(url)
-        html_source = soup.find_all("section", {"id": "skuSelection"})
-        return re.search(r'\bAdd to Cart\b', str(html_source))
-
-    def gamestop_stock(self, url):
-        soup = self.url_to_html(url)
-        html_source = soup.find_all("div", {"class": "button qq"})
-        return re.search(r'\bAdd to Cart\b', str(html_source))
-
-    def blizzard_stock(self, url):
-        soup = self.url_to_html(url)
-        html_source = soup.find_all("div",
-                                    {"class": "columns small-12 hide-for-small-only"})
+        html_source = soup.find_all(HTML_OBJ[site]["type"],
+                                    HTML_OBJ[site]["filter"])
         if re.search(r'\bOut of stock\b', str(html_source)):
             return False
 
         return True
-
 
 def start(bot, update):
     """Send a message when the command /start is issued."""
@@ -135,23 +133,21 @@ def start(bot, update):
     THREAD_ALIVE = True
     update.message.reply_text('Starting bot search.')
     
-
 def stop(bot, update):
     """Send a message when the command /stop is issued."""
     global THREAD_ALIVE
     THREAD_ALIVE = False
     update.message.reply_text('Stopping bot search.')
 
-
 def add(bot, update):
     """Send a message when the command /add is issued."""  
     if not len(update.message.text.split()) == 2:
-        logger.warning('Wrong number of parameters passed.')
+        logger.error('Wrong number of parameters passed.')
         update.message.reply_text('Wrong number of parameters passed.')
 
     if not validators.url(update.message.text.split()[1]):
-        logger.warning('URL exception %s.'.format(update.message.text.split()[1]))
-        update.message.reply_text('URL exception %s.'.format(update.message.text.split()[1]))
+        logger.error('URL exception {0}'.format(update.message.text.split()[1]))
+        update.message.reply_text('URL exception {0}'.format(update.message.text.split()[1]))
 
     parsed = urlparse(update.message.text.split()[1])
     store = parsed.netloc.split('.')[-2]
@@ -210,13 +206,11 @@ def help(bot, update):
 
 def error(bot, update, error):
     """Log Errors caused by Updates."""
-    logger.warning('Update "%s" caused error "%s"', update, error)
-
+    logger.error('Update "%s" caused error "%s"', update, error)
 
 def startfunc():
     stkobj = StoreStock()
     stkobj.pop_search()
-
 
 def main():
     """Start the bot."""
@@ -244,7 +238,6 @@ def main():
     # SIGTERM or SIGABRT. This should be used most of the time, since
     # start_polling() is non-blocking and will stop the bot gracefully.
     UPDATER.idle()
-
 
 if __name__ == '__main__':
     main()
