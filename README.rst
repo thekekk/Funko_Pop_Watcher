@@ -61,15 +61,7 @@ History
 ----------
 
   * 11/04/2018: Initial Commit
-  * 11/04/2018: Added support for the following stores
-	- Hot Topic
-	- Box Lunch
-	- Walmart
-	- Barnes and Noble
-	- GameStop
-	- Blizzard
-	- Gemini Collectibles
-	- Target
+  * 11/04/2018: Added support for the following stores: Hot Topic, Box Lunch, Walmart, Barnes and Noble, GameStop, Blizzard, Gemini Collectibles, Target
   * 11/08/2018: Added readme, requirements and made code readable
 
 License
