@@ -5,7 +5,7 @@ Funko-Pop-Watch
 Description
 ----------
 
- **NOTE: will only work on fixes as I have time. This is just a small script to get a Pop I need.** This is a script to scrape funko pop websites to check for item availability. It sends notification via the app "Telegram". 
+This is a script to scrape funko pop websites to check for item availability. It sends notification via the app "Telegram". **NOTE: will only work on fixes as I have time. This is just a small script to get a Pop I need.** 
 
 Running the utility from command line
 ~~~~~~~~~~~~~~~~~~~~~~~~~
