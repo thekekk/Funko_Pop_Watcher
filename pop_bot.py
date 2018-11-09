@@ -28,8 +28,12 @@ TIMEOUT = {}
 THREAD_ALIVE = False
 SEM = threading.Semaphore()
 
+# Define user specific attributed
+TELEGRAM_TOKEN = os.environ['TELEGRAM_TOKEN']
+TELEGRAM_CHAT_ID = os.environ['TELEGRAM_CHATID']
+
 # Create the EventHandler and pass it your bot's token.
-UPDATER = Updater(os.environ['TELEGRAM_TOKEN'])
+UPDATER = Updater(TELEGRAM_TOKEN)
 
 HTML_OBJ = {
     "hottopic": {"type": "div", "filter": {"class": "presale-pdp viewpage-pdp"}},
@@ -58,7 +62,7 @@ class StoreStock(object):
     
         if status:
             msg = site + " - In Stock: " + ":\n" + url
-            UPDATER.bot.send_message(chat_id=os.environ['TELEGRAM_CHATID'],
+            UPDATER.bot.send_message(chat_id=TELEGRAM_CHAT_ID,
                                           text=msg)
             url_md5 = hashlib.md5(url.encode('utf-8')).hexdigest()
             TIMEOUT[url_md5] = datetime.today().date()
