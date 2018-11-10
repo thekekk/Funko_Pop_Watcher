@@ -10,6 +10,7 @@ import logging
 import requests
 import threading
 import validators
+import urllib.request
 
 from threading import Thread
 from bs4 import BeautifulSoup
@@ -93,13 +94,9 @@ class StoreStock(object):
             time.sleep(sleep_interval)
 
     def url_to_html(self, url):
-        headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; '
-                   'Intel Mac OS X 10_10_1)'
-                   ' AppleWebKit/537.36 (KHTML, like Gecko)'
-                   ' Chrome/39.0.2171.95 Safari/537.36'}
-
-        r = requests.get(url, headers=headers)
-        return BeautifulSoup(r.text, 'html.parser')
+        product_page = urllib.request.Request(url, headers={'User-Agent' : "Magic Browser"})   
+        r = urllib.request.urlopen(product_page)
+        return BeautifulSoup(r.read(),"html5lib")
 
     def in_stock(self, site, url):
         soup = self.url_to_html(url)
